@@ -40,21 +40,92 @@ taskminer/
 
 ### Architecture
 
-```mermaid
 flowchart TD
-    U[Browser UI\nindex.html] -->|"POST /tasks free text"| API[FastAPI backend\nmain.py]
-    API --> NLP[NLP core\ndeadline / priority / project extraction]
-    NLP -->|structured task| API
-    API --> DB[(SQLite database\nprojects + tasks)]
-    API --> SCHED[Alarm scheduler\nAPScheduler]
-    SCHED -->|"deadline − 15 min"| ALARM{Alarm active flag}
-    ALARM -->|"GET /alarms/active poll"| U
-    U -->|"dismiss / mark done"| API
-    DB --> API
-```
 
-Client sends raw text → backend runs it through the NLP core → task + matched/new project persisted to the database → the scheduler watches deadlines in the background and flips a task's alarm flag 15 minutes before due → the frontend polls for active alarms and keeps alerting until the user dismisses it or marks the task done.
+    A["User Input<br/>Free-form Natural Language Text"]
 
+    B["NLP Processing<br/>TaskMiner NLP Core"]
+
+    C["Deadline Extraction<br/>• dateparser<br/>• Relative dates<br/>• Weekday rules<br/>• Custom regex filtering"]
+
+    D["Priority Detection<br/>• Urgency keywords<br/>• Time-to-deadline"]
+
+    E["Project Matching<br/>TF-IDF + Cosine Similarity<br/>Against Existing Projects"]
+
+    F{"Matching Project<br/>Found?"}
+
+    G["Existing Project<br/>Assign Task"]
+
+    H["Create New Project<br/>Store Project Corpus"]
+
+    I["Task + Project + Deadline + Priority<br/>Persist in SQLite<br/>SQLAlchemy"]
+
+    J["Alarm Scheduling<br/>APScheduler<br/>Deadline − 15 Minutes"]
+
+    K["Alarm Triggered<br/>Set Active Alarm Flag"]
+
+    L["Frontend Polling<br/>Vanilla HTML / CSS / JS"]
+
+    M["Persistent Alarm Popup<br/>• Looping Alert<br/>• Mark Done<br/>• Dismiss"]
+
+    N{"User Action"}
+
+    O["Mark Task Done<br/>Move To-Do → Done"]
+
+    P["Dismiss Alarm<br/>Alarm Stops"]
+
+    Q["To-Do / Done Board<br/>Real-time Task Updates"]
+
+    R["Projects View<br/>• Tasks by Project<br/>• Progress Tracking"]
+
+    A --> B
+
+    B --> C
+    B --> D
+    B --> E
+
+    E --> F
+    F -->|Yes| G
+    F -->|No| H
+
+    C --> I
+    D --> I
+    G --> I
+    H --> I
+
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+
+    M --> N
+    N -->|Mark Done| O
+    N -->|Dismiss| P
+
+    O --> Q
+    P --> Q
+
+    I --> Q
+    I --> R
+
+    style A fill:#E8F4FD,stroke:#1F4E79,stroke-width:2px
+    style B fill:#FFF2CC,stroke:#BF9000,stroke-width:2px
+    style C fill:#FCE5CD,stroke:#E69138,stroke-width:2px
+    style D fill:#FCE5CD,stroke:#E69138,stroke-width:2px
+    style E fill:#D9EAD3,stroke:#38761D,stroke-width:2px
+    style F fill:#D0E0E3,stroke:#134F5C,stroke-width:2px
+    style G fill:#D9EAD3,stroke:#38761D,stroke-width:2px
+    style H fill:#D9EAD3,stroke:#38761D,stroke-width:2px
+    style I fill:#D9D2E9,stroke:#674EA7,stroke-width:2px
+    style J fill:#D0E0E3,stroke:#134F5C,stroke-width:2px
+    style K fill:#F4CCCC,stroke:#CC0000,stroke-width:2px
+    style L fill:#CFE2F3,stroke:#0B5394,stroke-width:2px
+    style M fill:#F4CCCC,stroke:#CC0000,stroke-width:3px
+    style N fill:#D0E0E3,stroke:#134F5C,stroke-width:2px
+    style O fill:#D9EAD3,stroke:#38761D,stroke-width:2px
+    style P fill:#FFF2CC,stroke:#BF9000,stroke-width:2px
+    style Q fill:#CFE2F3,stroke:#0B5394,stroke-width:2px
+    style R fill:#CFE2F3,stroke:#0B5394,stroke-width:2px
 ### Tech Stack
 
 | Layer | Technology | Why |
