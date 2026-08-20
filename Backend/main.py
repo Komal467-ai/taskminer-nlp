@@ -1,3 +1,4 @@
+
 """
 TaskMiner - FastAPI Backend
 =============================
@@ -14,6 +15,8 @@ from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
@@ -32,6 +35,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# serves index.html at "/" and any other files under static/ -- this means
+# ONE Render deployment gives you both the API and the UI on the same URL,
+# no separate frontend host needed.
+@app.get("/")
+def serve_frontend():
+    return FileResponse("static/index.html")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 engine = TaskMinerNLP()
 scheduler = BackgroundScheduler()
