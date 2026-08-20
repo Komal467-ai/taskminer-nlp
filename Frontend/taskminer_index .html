@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TaskMiner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12151b;
+    --panel: #191d26;
+    --panel-raised: #1f2430;
+    --border: #2a3040;
+    --text: #e8eaed;
+    --text-dim: #8b93a3;
+    --text-faint: #545c6e;
+    --amber: #e8a33d;
+    --amber-dim: #7a5a26;
+    --teal: #3fa796;
+    --red: #d9605a;
+    --blue: #5b8def;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    min-height: 100vh;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  header h1 span {
+    color: var(--amber);
+  }
+
+  .conn-status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-faint);
+  }
+  .dot.ok { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+  .dot.err { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* --- input --- */
+  .input-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-panel.scanning::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -30%;
+    width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(232,163,61,0.12), transparent);
+    animation: scan 0.9s ease-in-out;
+  }
+
+  @keyframes scan {
+    from { left: -30%; }
+    to { left: 100%; }
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  #taskInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    padding: 14px 16px;
+  }
+
+  #taskInput::placeholder { color: var(--text-faint); }
+
+  #addBtn {
+    background: var(--amber);
+    color: #1a1408;
+    border: none;
+    border-radius: 7px;
+    padding: 0 22px;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 4px;
+    transition: filter 0.15s ease;
+  }
+  #addBtn:hover { filter: brightness(1.1); }
+  #addBtn:disabled { opacity: 0.5; cursor: default; }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 0 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* --- tabs --- */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 4px;
+    margin-right: 22px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--amber); }
+  .tab-btn:hover:not(.active) { color: var(--text-dim); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* --- columns --- */
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  @media (max-width: 720px) {
+    .board { grid-template-columns: 1fr; }
+  }
+
+  .col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .col-head h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  .col-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 9px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--text-faint);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .card.pri-high { border-left-color: var(--red); }
+  .card.pri-medium { border-left-color: var(--amber); }
+  .card.pri-low { border-left-color: var(--blue); }
+  .card.is-done { border-left-color: var(--teal); opacity: 0.6; }
+
+  .card-desc {
+    font-size: 14.5px;
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  .card.is-done .card-desc { text-decoration: line-through; color: var(--text-dim); }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--panel-raised);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .tag.project { color: var(--blue); border-color: rgba(91,141,239,0.3); }
+  .tag.deadline { color: var(--text-dim); }
+  .tag.priority-high { color: var(--red); border-color: rgba(217,96,90,0.3); }
+  .tag.priority-medium { color: var(--amber); border-color: rgba(232,163,61,0.3); }
+  .tag.priority-low { color: var(--blue); border-color: rgba(91,141,239,0.3); }
+
+  .card-actions button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Sora', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .card-actions button:hover { border-color: var(--teal); color: var(--teal); }
+
+  .empty-state {
+    color: var(--text-faint);
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 24px 4px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  /* --- projects view --- */
+  .project-group {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .project-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+  }
+
+  .project-group-head:hover { background: var(--panel-raised); }
+
+  .project-name-row { display: flex; align-items: center; gap: 10px; }
+
+  .project-name {
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .project-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .progress-track {
+    width: 90px;
+    height: 5px;
+    background: var(--panel-raised);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+  }
+
+  .progress-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+
+  .chevron {
+    color: var(--text-faint);
+    transition: transform 0.15s ease;
+    font-size: 11px;
+  }
+  .project-group.expanded .chevron { transform: rotate(90deg); }
+
+  .project-group-body {
+    display: none;
+    padding: 0 18px 16px;
+  }
+  .project-group.expanded .project-group-body { display: block; }
+
+  /* --- alarm overlay --- */
+  .alarm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 6, 2, 0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+  .alarm-overlay.show { display: flex; }
+
+  .alarm-box {
+    background: var(--panel);
+    border: 1px solid var(--amber);
+    box-shadow: 0 0 60px rgba(232,163,61,0.25);
+    border-radius: 14px;
+    padding: 32px;
+    max-width: 460px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .alarm-ring {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 3px solid var(--amber);
+    margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(232,163,61,0.5); }
+    50% { box-shadow: 0 0 0 14px rgba(232,163,61,0); }
+  }
+
+  .alarm-box h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .alarm-task-desc {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 10px 0 6px;
+  }
+
+  .alarm-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 22px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .alarm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .alarm-actions button {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    border-radius: 8px;
+    padding: 10px 18px;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-done { background: var(--teal); color: #06211d; }
+  .btn-dismiss { background: var(--panel-raised); color: var(--text-dim); border: 1px solid var(--border) !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Task<span>Miner</span></h1>
+    <div class="conn-status"><span class="dot" id="connDot"></span><span id="connText">connecting…</span></div>
+  </header>
+
+  <div class="input-panel" id="inputPanel">
+    <div class="input-row">
+      <input id="taskInput" type="text" placeholder="Type a task naturally — e.g. &quot;finish the report by tomorrow 6pm&quot;" />
+      <button id="addBtn">Add</button>
+    </div>
+  </div>
+  <div class="input-hint">deadline, project &amp; priority are extracted automatically from what you type</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-view="boardView">Board</button>
+    <button class="tab-btn" data-view="projectsView">Projects</button>
+  </div>
+
+  <div class="view active" id="boardView">
+    <div class="board">
+      <div>
+        <div class="col-head">
+          <h2>To-Do</h2>
+          <span class="col-count" id="todoCount">0</span>
+        </div>
+        <div id="todoList"></div>
+      </div>
+      <div>
+        <div class="col-head">
+          <h2>Done</h2>
+          <span class="col-count" id="doneCount">0</span>
+        </div>
+        <div id="doneList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view" id="projectsView">
+    <div id="projectsList" style="margin-top: 20px;"></div>
+  </div>
+</div>
+
+<div class="alarm-overlay" id="alarmOverlay">
+  <div class="alarm-box">
+    <div class="alarm-ring">⏰</div>
+    <h3>Deadline approaching</h3>
+    <div class="alarm-task-desc" id="alarmDesc">—</div>
+    <div class="alarm-sub" id="alarmMeta">—</div>
+    <div class="alarm-actions">
+      <button class="btn-done" id="alarmDoneBtn">Mark done</button>
+      <button class="btn-dismiss" id="alarmDismissBtn">Dismiss alarm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+const el = {
+  input: document.getElementById('taskInput'),
+  addBtn: document.getElementById('addBtn'),
+  inputPanel: document.getElementById('inputPanel'),
+  todoList: document.getElementById('todoList'),
+  doneList: document.getElementById('doneList'),
+  todoCount: document.getElementById('todoCount'),
+  doneCount: document.getElementById('doneCount'),
+  connDot: document.getElementById('connDot'),
+  connText: document.getElementById('connText'),
+  alarmOverlay: document.getElementById('alarmOverlay'),
+  alarmDesc: document.getElementById('alarmDesc'),
+  alarmMeta: document.getElementById('alarmMeta'),
+  alarmDoneBtn: document.getElementById('alarmDoneBtn'),
+  alarmDismissBtn: document.getElementById('alarmDismissBtn'),
+  projectsList: document.getElementById('projectsList'),
+  tabBtns: document.querySelectorAll('.tab-btn'),
+  views: document.querySelectorAll('.view'),
+};
+
+const expandedProjects = new Set();
+
+el.tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    el.tabBtns.forEach(b => b.classList.remove('active'));
+    el.views.forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'projectsView') refreshProjects();
+  });
+});
+
+let currentAlarmTask = null;
+let audioCtx = null;
+let beepInterval = null;
+
+function setConn(ok) {
+  el.connDot.className = 'dot ' + (ok ? 'ok' : 'err');
+  el.connText.textContent = ok ? 'connected' : 'backend not reachable — is uvicorn running?';
+}
+
+function fmtDeadline(iso) {
+  if (!iso) return 'no deadline';
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function taskCard(task) {
+  const div = document.createElement('div');
+  const priClass = task.status === 'done' ? '' : `pri-${task.priority}`;
+  div.className = `card ${priClass} ${task.status === 'done' ? 'is-done' : ''}`;
+  div.innerHTML = `
+    <div class="card-desc">${escapeHtml(task.description)}</div>
+    <div class="card-meta">
+      <div class="tag-row">
+        <span class="tag project">${escapeHtml(task.project_name)}</span>
+        <span class="tag deadline">${fmtDeadline(task.deadline)}</span>
+        ${task.status !== 'done' ? `<span class="tag priority-${task.priority}">${task.priority}</span>` : ''}
+        ${task.alarm_active ? `<span class="tag" style="color:var(--red);border-color:rgba(217,96,90,0.4)">⏰ ringing</span>` : ''}
+      </div>
+      <div class="card-actions">
+        ${task.status !== 'done' ? `<button data-id="${task.id}" class="mark-done-btn">Mark done</button>` : ''}
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+async function refreshLists() {
+  try {
+    const [todoRes, doneRes] = await Promise.all([
+      fetch(`${API}/tasks/todo`), fetch(`${API}/tasks/done`)
+    ]);
+    if (!todoRes.ok || !doneRes.ok) throw new Error('bad response');
+    const todo = await todoRes.json();
+    const done = await doneRes.json();
+    setConn(true);
+
+    todo.sort((a, b) => {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+
+    el.todoCount.textContent = todo.length;
+    el.doneCount.textContent = done.length;
+
+    el.todoList.innerHTML = '';
+    if (todo.length === 0) {
+      el.todoList.innerHTML = '<div class="empty-state">nothing pending — type a task above</div>';
+    } else {
+      todo.forEach(t => el.todoList.appendChild(taskCard(t)));
+    }
+
+    el.doneList.innerHTML = '';
+    if (done.length === 0) {
+      el.doneList.innerHTML = '<div class="empty-state">completed tasks will land here</div>';
+    } else {
+      done.slice().reverse().forEach(t => el.doneList.appendChild(taskCard(t)));
+    }
+
+    document.querySelectorAll('.mark-done-btn').forEach(btn => {
+      btn.addEventListener('click', () => markDone(btn.dataset.id));
+    });
+  } catch (e) {
+    setConn(false);
+  }
+}
+
+async function refreshProjects() {
+  try {
+    const res = await fetch(`${API}/projects`);
+    if (!res.ok) throw new Error('bad response');
+    const projects = await res.json();
+    setConn(true);
+
+    if (projects.length === 0) {
+      el.projectsList.innerHTML = '<div class="empty-state">no projects yet — add a task to create one</div>';
+      return;
+    }
+
+    const taskLists = await Promise.all(
+      projects.map(p => fetch(`${API}/projects/${p.id}/tasks`).then(r => r.json()))
+    );
+
+    el.projectsList.innerHTML = '';
+    projects.forEach((proj, i) => {
+      const tasks = taskLists[i];
+      const done = tasks.filter(t => t.status === 'done').length;
+      const total = tasks.length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      const isExpanded = expandedProjects.has(proj.id);
+
+      const group = document.createElement('div');
+      group.className = 'project-group' + (isExpanded ? ' expanded' : '');
+      group.innerHTML = `
+        <div class="project-group-head" data-pid="${proj.id}">
+          <div class="project-name-row">
+            <span class="chevron">▶</span>
+            <span class="project-name">${escapeHtml(proj.name)}</span>
+          </div>
+          <div class="project-progress-wrap">
+            <span class="progress-label">${done}/${total} done</span>
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          </div>
+        </div>
+        <div class="project-group-body"></div>
+      `;
+      const body = group.querySelector('.project-group-body');
+      if (tasks.length === 0) {
+        body.innerHTML = '<div class="empty-state">no tasks in this project</div>';
+      } else {
+        tasks.slice().sort((a, b) => (a.status === 'done') - (b.status === 'done'))
+          .forEach(t => body.appendChild(taskCard(t)));
+      }
+      group.querySelector('.project-group-head').addEventListener('click', () => {
+        group.classList.toggle('expanded');
+        if (group.classList.contains('expanded')) expandedProjects.add(proj.id);
+        else expandedProjects.delete(proj.id);
+      });
+      el.projectsList.appendChild(group);
+    });
+
+    // re-wire mark-done buttons inside project view
+    document.querySelectorAll('.mark-done-btn').forEach(btn => {
+      btn.addEventListener('click', () => markDone(btn.dataset.id));
+    });
+  } catch (e) {
+    setConn(false);
+  }
+}
+
+async function addTask() {
+  const text = el.input.value.trim();
+  if (!text) return;
+  el.addBtn.disabled = true;
+  el.inputPanel.classList.add('scanning');
+  try {
+    const res = await fetch(`${API}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) throw new Error('failed to add');
+    el.input.value = '';
+    await refreshLists();
+  } catch (e) {
+    alert('Could not add task — check that the backend server is running.');
+  } finally {
+    el.addBtn.disabled = false;
+    setTimeout(() => el.inputPanel.classList.remove('scanning'), 900);
+  }
+}
+
+async function markDone(id) {
+  try {
+    await fetch(`${API}/tasks/${id}/done`, { method: 'POST' });
+    await refreshLists();
+    if (currentAlarmTask && currentAlarmTask.id === id) hideAlarm();
+  } catch (e) {}
+}
+
+async function dismissAlarm(id) {
+  try {
+    await fetch(`${API}/tasks/${id}/dismiss-alarm`, { method: 'POST' });
+    hideAlarm();
+    await refreshLists();
+  } catch (e) {}
+}
+
+// --- alarm polling & persistent alert ---
+
+function beep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.35);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.35);
+  } catch (e) {}
+}
+
+function showAlarm(task) {
+  currentAlarmTask = task;
+  el.alarmDesc.textContent = task.description;
+  el.alarmMeta.textContent = `${task.project_name} · due ${fmtDeadline(task.deadline)}`;
+  el.alarmOverlay.classList.add('show');
+  if (!beepInterval) {
+    beep();
+    beepInterval = setInterval(beep, 2500);
+  }
+}
+
+function hideAlarm() {
+  el.alarmOverlay.classList.remove('show');
+  currentAlarmTask = null;
+  if (beepInterval) { clearInterval(beepInterval); beepInterval = null; }
+}
+
+async function pollAlarms() {
+  try {
+    const res = await fetch(`${API}/alarms/active`);
+    if (!res.ok) return;
+    const active = await res.json();
+    if (active.length > 0) {
+      showAlarm(active[0]); // show the earliest/first active alarm; others queue after this one is dismissed
+    } else if (currentAlarmTask) {
+      hideAlarm();
+    }
+  } catch (e) {}
+}
+
+el.alarmDoneBtn.addEventListener('click', () => currentAlarmTask && markDone(currentAlarmTask.id));
+el.alarmDismissBtn.addEventListener('click', () => currentAlarmTask && dismissAlarm(currentAlarmTask.id));
+el.addBtn.addEventListener('click', addTask);
+el.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
+
+refreshLists();
+setInterval(() => {
+  refreshLists();
+  if (document.getElementById('projectsView').classList.contains('active')) refreshProjects();
+}, 5000);
+setInterval(pollAlarms, 4000);
+</script>
+
+</body>
+</html>
