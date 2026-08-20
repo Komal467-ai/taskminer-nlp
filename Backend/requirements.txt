@@ -2,4 +2,7 @@ dateparser
 scikit-learn
 fastapi
 uvicorn
-spacy
+sqlalchemy
+apscheduler
+pydantic
+psycopg2-binary
