@@ -26,18 +26,37 @@ _(Formal precision/recall benchmarking against a labelled message set is listed 
 
 ### Project Structure
 
-taskminer/
+## 📁 Project Structure
+
+```text
+taskminer-nlp/
+│
 ├── backend/
-│ ├── main.py # FastAPI app — endpoints + alarm scheduling
-│ ├── nlp_core.py # task/project/deadline/priority extraction
-│ ├── db.py # SQLAlchemy session/engine setup
-│ ├── models.py # ORM models (Project, Task)
-│ ├── test_nlp_core.py # standalone test of the NLP core
-│ └── requirements.txt
-└── frontend/
-└── index.html # single-file UI — board, projects view, alarm
+│   ├── main.py              # FastAPI application, API endpoints & alarm scheduling
+│   ├── nlp_core.py          # Task, deadline, priority & project extraction
+│   ├── db.py                # SQLite database & SQLAlchemy session setup
+│   ├── models.py            # Project and Task database models
+│   ├── test_nlp_core.py     # NLP core testing
+│   └── requirements.txt     # Python dependencies
+│
+├── frontend/
+│   └── index.html           # Task board, projects view & persistent alarm UI
+│
+├── README.md                # Project documentation
+└── .gitignore               # Ignored files and folders
+```
 
+### 🔄 Component Responsibilities
 
+| Component | Responsibility |
+|---|---|
+| `nlp_core.py` | Extracts task, deadline, priority and matches projects |
+| `main.py` | FastAPI endpoints and APScheduler alarm logic |
+| `models.py` | Defines Task and Project database models |
+| `db.py` | Handles SQLite database connection through SQLAlchemy |
+| `test_nlp_core.py` | Tests NLP extraction and project matching |
+| `index.html` | Provides To-Do/Done board, Projects view and alarm popup |
+| `requirements.txt` | Contains required Python packages |
 ### Architecture
 ```mermaid
 flowchart TD
@@ -149,3 +168,42 @@ flowchart TD
 6. **Board Update** — completed tasks move from To-Do to Done in real time
 
 ### Running Locally
+
+git clone https://github.com/Komal467-ai/taskminer-nlp.git
+cd taskminer-nlp/backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+
+Then open `frontend/index.html` directly in a browser (no build step needed).
+
+### Limitations
+
+- Project-clustering threshold is tuned on a small hand-written test set, not a large labelled dataset
+- One deadline is extracted per message — messages describing multiple events (e.g. a multi-day schedule) only capture the last valid date found
+- TF-IDF clustering is less robust than dense embeddings (Sentence-Transformers) for messages that are topically related but share few exact words
+- No mobile push notifications yet — alarm is in-browser only, so the tab must stay open
+
+### Future Improvements
+
+- Swap TF-IDF clustering for Sentence-Transformer embeddings for stronger semantic matching
+- Benchmark deadline/project extraction against a labelled test set (precision/recall, not just spot checks)
+- WhatsApp/Telegram/email integration for automatic task ingestion
+- Recurring task detection and automatic sub-task breakdown
+- Native mobile app with OS-level push notifications for the alarm
+
+### What This Project Demonstrates
+
+- End-to-end system design: NLP pipeline → API → database → scheduled background jobs → real-time frontend
+- Practical NLP: date/time extraction, text-similarity-based clustering, rule-based false-positive filtering
+- REST API design with FastAPI
+- Background job scheduling (APScheduler) for time-based enforcement, not just passive reminders
+- Iterative debugging against real, messy, unstructured input (not just clean textbook examples)
+
+### 📸 Application Demo
+
+_Add screenshots here once the UI is finalized — same as the Home / Detection Result pattern used in TruthLens._
+
+- 🏠 **Board View** — To-Do and Done columns, task cards with project/deadline/priority tags
+- 📁 **Projects View** — tasks grouped by project with progress bar
+- ⏰ **Alarm Popup** — persistent deadline alert with Mark Done / Dismiss actions
