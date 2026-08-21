@@ -484,7 +484,10 @@
 </div>
 
 <script>
-const API = "http://127.0.0.1:8000";
+// empty string = same origin as this page. Works locally (FastAPI serves
+// this file at http://127.0.0.1:8000/) and once deployed (Render serves it
+// at your live URL) without needing to change this line either time.
+const API = "";
 
 const el = {
   input: document.getElementById('taskInput'),
@@ -547,7 +550,7 @@ function taskCard(task) {
         ${task.alarm_active ? `<span class="tag" style="color:var(--red);border-color:rgba(217,96,90,0.4)">⏰ ringing</span>` : ''}
       </div>
       <div class="card-actions">
-        ${task.status !== 'done' ? `<button data-id="${task.id}" class="mark-done-btn">Mark done</button>` : ''}
+        ${task.status !== 'done' ? `<button data-id="${task.id}" class="mark-done-btn">Mark done</button>` : `<button data-id="${task.id}" class="undo-btn">Undo</button>`}
       </div>
     </div>
   `;
@@ -595,6 +598,9 @@ async function refreshLists() {
 
     document.querySelectorAll('.mark-done-btn').forEach(btn => {
       btn.addEventListener('click', () => markDone(btn.dataset.id));
+    });
+    document.querySelectorAll('.undo-btn').forEach(btn => {
+      btn.addEventListener('click', () => undoTask(btn.dataset.id));
     });
   } catch (e) {
     setConn(false);
@@ -659,6 +665,9 @@ async function refreshProjects() {
     document.querySelectorAll('.mark-done-btn').forEach(btn => {
       btn.addEventListener('click', () => markDone(btn.dataset.id));
     });
+    document.querySelectorAll('.undo-btn').forEach(btn => {
+      btn.addEventListener('click', () => undoTask(btn.dataset.id));
+    });
   } catch (e) {
     setConn(false);
   }
@@ -691,6 +700,13 @@ async function markDone(id) {
     await fetch(`${API}/tasks/${id}/done`, { method: 'POST' });
     await refreshLists();
     if (currentAlarmTask && currentAlarmTask.id === id) hideAlarm();
+  } catch (e) {}
+}
+
+async function undoTask(id) {
+  try {
+    await fetch(`${API}/tasks/${id}/undo`, { method: 'POST' });
+    await refreshLists();
   } catch (e) {}
 }
 
