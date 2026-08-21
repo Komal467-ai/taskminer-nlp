@@ -2,7 +2,7 @@
 
 An NLP-powered task manager that reads plain, everyday text — not structured forms — and automatically extracts the task, identifies which project it belongs to, pulls out the deadline, and enforces it with a persistent alarm that only stops when you dismiss it.
 
-🔗 Live Demo: https://taskminer-nlp.onrender.com
+🔗 Live Demo: https://bacterium-amazingly-rug.ngrok-free.dev/ 
 🔗 GitHub: https://github.com/Komal467-ai/taskminer-nlp
 
 ### Overview
